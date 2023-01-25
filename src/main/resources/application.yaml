@@ -1,0 +1,49 @@
+
+
+
+swagger.server.url: http://127.0.0.1:8080
+swagger.auth.url: http://127.0.0.1:8080
+
+jwt:
+  jwks:
+    uri: http://localhost:8080/oauth2/jwks
+
+dev:
+  oauth2:
+    enabled: true
+    client-id: auth
+    client-secret: auth
+    redirect-uris:
+      - http://127.0.0.1:8080/swagger-ui/oauth2-redirect.html
+      - http://localhost:8080/swagger-ui/oauth2-redirect.html
+
+
+
+auth:
+  # keytool -genkeypair -alias authkey -keyalg RSA -keypass authkey00 -keystore authkey.jks -storepass authkey00
+  # /src/main/resources/authkey.jks ??
+  token:
+    issuer: mk
+    expire-time: 480 # min
+    keystore:
+      password: authkey00
+      private-key: authkey.jks
+      alias: authkey
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # self authorization server and resource server
+          jwk-set-uri: ${jwt.jwks.uri}
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+logging:
+  level:
+    org:
+      springframework:
+        web: debug
+        security: debug
