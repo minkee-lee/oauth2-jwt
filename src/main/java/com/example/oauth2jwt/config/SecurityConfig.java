@@ -5,7 +5,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -13,9 +16,33 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 public class SecurityConfig {
 
-
+    /**
+     * 토큰 생성요청에 대해서는 http basic 인증 적용 -> DevAuthenticationProvider 에서 처리
+     * @param http
+     * @return
+     * @throws Exception
+     */
     @Bean
     @Order(2)
+    public SecurityFilterChain tokenSecurityFilterChain(HttpSecurity http) throws Exception {
+        RequestMatcher requestMatcher = request -> {
+            boolean isMatch = new AntPathMatcher().match("/api/v1/auth/token/**", request.getRequestURI());
+            return isMatch;
+        };
+        http.sessionManagement(sessionConfig -> sessionConfig.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        http.requestMatcher(requestMatcher).authorizeRequests(authorize -> {
+            authorize.mvcMatchers("/api/v1/auth/token/**").authenticated();
+//            authorize.mvcMatchers("/api/v1/auth/token/**").permitAll();
+        }).csrf(csrf -> csrf
+                .ignoringRequestMatchers(requestMatcher)
+        ).exceptionHandling(exception -> exception
+                .authenticationEntryPoint(new CustomAuthenticationEntryPoint())
+        ).httpBasic();
+        return http.build();
+    }
+
+    @Bean
+    @Order(3)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http.headers().frameOptions().sameOrigin(); // h2-console 접근 시 X-Frame-Options deny 이슈 해결
         http.csrf().disable();
@@ -27,7 +54,7 @@ public class SecurityConfig {
                             .mvcMatchers("/swagger-ui/**", "/v3/api-docs", "/swagger-resources/**").permitAll()
                             .mvcMatchers("/h2-console").permitAll()
                             .mvcMatchers("/health").permitAll()
-                            .mvcMatchers("/api/v1/auth/**").permitAll() // TODO 토큰 발급시 인증 필요?
+                            .mvcMatchers("/api/v1/auth/**").permitAll()
                             .anyRequest().authenticated();
                 })
                 .oauth2ResourceServer(oauth2 -> {

@@ -23,6 +23,7 @@ auth:
   # keytool -genkeypair -alias authkey -keyalg RSA -keypass authkey00 -keystore authkey.jks -storepass authkey00
   # /src/main/resources/authkey.jks ??
   token:
+    generate-key: YXV0aDphdXRo
     issuer: mk
     expire-time: 480 # min
     keystore:
